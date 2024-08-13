@@ -30,3 +30,6 @@ vendor/
 # benchmark files
 source
 destination
+
+# binary
+ticrypt-file-copy
