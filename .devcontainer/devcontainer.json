@@ -1,0 +1,14 @@
+{
+    "name": "ticrypt-file-copy",
+    "image": "golang",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.go"
+            ]
+        }
+    },
+    "mounts": [
+        "source=/Users/vishy/go/pkg,target=/go/pkg,type=bind,consistency=cached",
+    ]
+}
