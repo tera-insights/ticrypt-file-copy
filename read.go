@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"syscall"
 )
 
 func Read(copier *Copier) {
 	// Read the file
-	fd, err := os.OpenFile(copier.SourceFilepath, os.O_RDONLY|syscall.O_DIRECT, 0644)
+	// fd, err := os.OpenFile(copier.SourceFilepath, os.O_RDONLY|syscall.O_DIRECT, 0644)
+	fd, err := os.Open(copier.SourceFilepath)
 	if err != nil {
 		fmt.Printf("Error %v\n", err)
 		return

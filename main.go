@@ -14,7 +14,7 @@ func main() {
 	app := &cli.App{
 		Name:      "ticrypt-file-copy",
 		Usage:     "Hight performance tool to copy files",
-		UsageText: "ticp [arguments]",
+		UsageText: "ticp [source] [destination]",
 		Action: func(*cli.Context) error {
 			copier := NewCopier("source", "destination", 4)
 			start := time.Now()
@@ -28,6 +28,16 @@ func main() {
 			return nil
 		},
 		Commands: []*cli.Command{
+			{
+				Name:      "start-daemon",
+				Aliases:   []string{"d"},
+				Usage:     "Start the daemon",
+				UsageText: "start-daemon",
+				Action: func(c *cli.Context) error {
+					fmt.Println("Starting the daemon")
+					return nil
+				},
+			},
 			{
 				Name:      "benchmark",
 				Aliases:   []string{"b"},
@@ -58,7 +68,7 @@ func main() {
 						}
 					}()
 
-					copier := NewCopier("source", "destination", 4)
+					copier := NewCopier("source", "destination", 4096)
 					fmt.Println("Starting the benchmark")
 					start = time.Now()
 					err = copier.Copy()
@@ -68,6 +78,18 @@ func main() {
 					if err != nil {
 						fmt.Printf("Error: %v\n", err)
 					}
+
+					fmt.Println("Benchmark rsync")
+					cmd = exec.Command("rsync", []string{"source", "destination"}...)
+					start = time.Now()
+					err = cmd.Run()
+					t = time.Now()
+					elapsed = t.Sub(start)
+					fmt.Printf("Time taken %v /GB \n", elapsed)
+					if err != nil {
+						fmt.Printf("Error: %v\n", err)
+					}
+
 					return nil
 				},
 			},

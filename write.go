@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
-	"syscall"
 )
 
 func Write(copier *Copier) {
 	// Write the file
-	fd, err := os.OpenFile(copier.DestinationFilePath, os.O_WRONLY|os.O_CREATE|syscall.O_DIRECT, 0644)
+	// fd, err := os.OpenFile(copier.DestinationFilePath, os.O_WRONLY|os.O_CREATE|syscall.O_DIRECT, 0644)
+	fd, err := os.Create(copier.DestinationFilePath)
 	if err != nil {
 		fmt.Printf("Error %v\n", err)
 		return
