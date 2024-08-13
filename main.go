@@ -35,7 +35,11 @@ func main() {
 				UsageText: "benchmark",
 				Action: func(c *cli.Context) error {
 					cmd := exec.Command("dd", []string{"if=/dev/urandom", "of=source", "bs=64M", "count=16", "iflag=fullblock"}...)
+					start := time.Now()
 					err := cmd.Run()
+					t := time.Now()
+					elapsed := t.Sub(start)
+					fmt.Printf("Time taken %v /GB \n", elapsed)
 					if err != nil {
 						fmt.Printf("Error: %v\n", err)
 						return nil
@@ -56,10 +60,10 @@ func main() {
 
 					copier := NewCopier("source", "destination", 4)
 					fmt.Println("Starting the benchmark")
-					start := time.Now()
+					start = time.Now()
 					err = copier.Copy()
-					t := time.Now()
-					elapsed := t.Sub(start)
+					t = time.Now()
+					elapsed = t.Sub(start)
 					fmt.Printf("Time taken %v /GB \n", elapsed)
 					if err != nil {
 						fmt.Printf("Error: %v\n", err)
