@@ -25,9 +25,14 @@ bin/ticrypt-file-copy: bin/
 bin/debug/ticrypt-file-copy: bin/debug/
 	go build $(GO_LDFLAGS) $(GOTAGS_TEST) -o bin/debug/ticp $(GOLANG_PKG)
 
-copy: bin/ticrypt-file-copy
+build: bin/ticrypt-file-copy
 
-copy_debug: bin/debug/ticrypt-file-copy
+build_debug: bin/debug/ticrypt-file-copy
+
+## Installation
+
+install: build
+	cp bin/ticrypt-file-copy /usr/local/bin/ticp
 
 ## Testing
 test: mocks
