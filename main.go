@@ -4,37 +4,79 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"time"
+	"os/signal"
+	"syscall"
 
+	"github.com/tera-insights/ticrypt-file-copy/copy"
+	"github.com/tera-insights/ticrypt-file-copy/daemon"
+	ticrypt "github.com/tera-insights/ticrypt-go"
 	"github.com/urfave/cli/v2"
 )
 
 func main() {
+	var hostID string = "ticrypt"
 	app := &cli.App{
 		Name:      "ticrypt-file-copy",
 		Usage:     "Hight performance tool to copy files",
 		UsageText: "ticp [source] [destination]",
-		Action: func(*cli.Context) error {
-			copier := NewCopier("source", "destination", 4)
-			start := time.Now()
-			err := copier.Copy()
-			t := time.Now()
-			elapsed := t.Sub(start)
-			fmt.Printf("Time taken %v /GB \n", elapsed)
+		Action: func(c *cli.Context) error {
+			// Get the source and destination
+			source := c.Args().First()
+			if source == "" {
+				fmt.Println("Source file is required")
+				return nil
+			}
+			destination := c.Args().Get(1)
+			if destination == "" {
+				fmt.Println("Destination file is required")
+				return nil
+			}
+
+			// Copy the file
+			err := copy.NewCopier(source, destination, 4).Copy(copy.Read, copy.Write)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}
 			return nil
 		},
+
 		Commands: []*cli.Command{
 			{
 				Name:      "start-daemon",
 				Aliases:   []string{"d"},
 				Usage:     "Start the daemon",
-				UsageText: "start-daemon",
+				UsageText: "start-daemon [host:port]",
 				Action: func(c *cli.Context) error {
-					fmt.Println("Starting the daemon")
+					// Get the host:port
+					host := c.Args().First()
+					if host == "" {
+						host = "localhost:8080"
+					}
+					// Create ticrypt client
+					tcClient, err := ticrypt.NewClient(&ticrypt.Options{
+						Host:  host,
+						NoTLS: true,
+					})
+					if err != nil {
+						return err
+					}
+
+					// Create the daemon
+					daemon := daemon.NewDaemon(hostID, &tcClient)
+					// Start the daemon
+					daemon.Start()
+
+					// Wait for stop signal
+					stopSignal := make(chan os.Signal, 1)
+					signal.Notify(stopSignal, os.Interrupt, syscall.SIGTERM)
+
+					// Block until a termination signal is received
+					<-stopSignal
+					fmt.Println("Received termination signal. Shutting down...")
+
+					// Stop the job manager
+					daemon.Close()
+
 					return nil
 				},
 			},
@@ -44,52 +86,21 @@ func main() {
 				Usage:     "Run the benchmark",
 				UsageText: "benchmark",
 				Action: func(c *cli.Context) error {
-					cmd := exec.Command("dd", []string{"if=/dev/urandom", "of=source", "bs=64M", "count=16", "iflag=fullblock"}...)
-					start := time.Now()
-					err := cmd.Run()
-					t := time.Now()
-					elapsed := t.Sub(start)
-					fmt.Printf("Time taken %v /GB \n", elapsed)
-					if err != nil {
-						fmt.Printf("Error: %v\n", err)
-						return nil
+					// Get the source and destination
+					source := c.Args().First()
+					if source == "" {
+						source = "source"
 					}
-					fmt.Println("File created")
-					defer func() {
-						cmd = exec.Command("rm", "source")
-						err = cmd.Run()
-						if err != nil {
-							fmt.Printf("Error: %v\n", err)
-						}
-						cmd = exec.Command("rm", "destination")
-						err = cmd.Run()
-						if err != nil {
-							fmt.Printf("Error: %v\n", err)
-						}
-					}()
+					destination := c.Args().Get(1)
+					if destination == "" {
+						destination = "destination"
+					}
 
-					copier := NewCopier("source", "destination", 4096)
-					fmt.Println("Starting the benchmark")
-					start = time.Now()
-					err = copier.Copy()
-					t = time.Now()
-					elapsed = t.Sub(start)
-					fmt.Printf("Time taken %v /GB \n", elapsed)
+					// Benchmark the copy
+					err := copy.NewCopier(source, destination, 4).Benchmark(copy.Read, copy.Write)
 					if err != nil {
 						fmt.Printf("Error: %v\n", err)
 					}
-
-					fmt.Println("Benchmark rsync")
-					cmd = exec.Command("rsync", []string{"source", "destination"}...)
-					start = time.Now()
-					err = cmd.Run()
-					t = time.Now()
-					elapsed = t.Sub(start)
-					fmt.Printf("Time taken %v /GB \n", elapsed)
-					if err != nil {
-						fmt.Printf("Error: %v\n", err)
-					}
-
 					return nil
 				},
 			},
