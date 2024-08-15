@@ -29,7 +29,7 @@ require (
 	github.com/tera-insights/openssl/v3 v3.0.0 // indirect
 	github.com/tera-insights/tiCrypt-crypto-go v0.0.0-20230426153516-a6669a53d237 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 )
