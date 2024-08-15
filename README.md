@@ -9,6 +9,7 @@ Simple CLI/Library to copy files at high speed
 - Benchmark mode
 - Progress bar
 - CLI interface
+- Recovery Mode
 
 
 ### Build

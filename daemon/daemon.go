@@ -34,7 +34,8 @@ func (d *daemon) Start() {
 			log.Printf("error unmarshalling copy message: %s\n", err.Error())
 			return
 		}
-		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize)
+		progress := make(chan copy.Progress)
+		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
 		copier.Copy(copy.Read, copy.Write)
 		return
 	})
@@ -46,10 +47,11 @@ func (d *daemon) Start() {
 		}
 		if err := json.Unmarshal(data, &copyMsg); err != nil {
 			log.Printf("error unmarshalling copy message: %s\n", err.Error())
-			copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize)
-			copier.Benchmark(copy.Read, copy.Write)
 			return
 		}
+		progress := make(chan copy.Progress)
+		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
+		copier.Benchmark(copy.Read, copy.Write)
 		return
 	})
 	d.listener.Register("stop", func(data json.RawMessage) {

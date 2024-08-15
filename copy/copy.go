@@ -2,6 +2,7 @@ package copy
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"sync"
 	"time"
@@ -11,17 +12,27 @@ import (
 
 const DEFAULT_CHUNK_SIZE = 4 //In MB
 
+type Progress struct {
+	BytesWritten int
+	TotalBytes   int64
+}
+
 type Copier struct {
 	SourceFilepath      string
 	DestinationFilePath string
-	MmapRead            []byte
-	MmapWrite           []byte
 	ChunkSize           int //In MB
-	ReadDone            chan int
-	WriteDone           chan int
+
+	StartingOffset int64
+
+	MmapRead  []byte
+	MmapWrite []byte
+
+	ReadDone  chan int
+	WriteDone chan int
+	Progress  chan Progress
 }
 
-func NewCopier(SourceFilepath string, DestinationFilePath string, chunkSize int) *Copier {
+func NewCopier(SourceFilepath string, DestinationFilePath string, chunkSize int, progress chan Progress) *Copier {
 	if chunkSize <= 0 {
 		chunkSize = DEFAULT_CHUNK_SIZE
 	}
@@ -31,11 +42,28 @@ func NewCopier(SourceFilepath string, DestinationFilePath string, chunkSize int)
 		ChunkSize:           chunkSize,
 		ReadDone:            make(chan int),
 		WriteDone:           make(chan int),
+		Progress:            progress,
 	}
 	return copier
 }
 
-func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier)) error {
+func NewRecoveryCopier(SourceFilepath string, DestinationFilePath string, chunkSize int, startingOffset int64, progress chan Progress) *Copier {
+	if chunkSize <= 0 {
+		chunkSize = DEFAULT_CHUNK_SIZE
+	}
+	copier := &Copier{
+		SourceFilepath:      SourceFilepath,
+		DestinationFilePath: DestinationFilePath,
+		ChunkSize:           chunkSize,
+		StartingOffset:      startingOffset,
+		ReadDone:            make(chan int),
+		WriteDone:           make(chan int),
+		Progress:            progress,
+	}
+	return copier
+}
+
+func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) error {
 	mmap, err := unix.Mmap(0, 0, c.ChunkSize*1024*1024, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
 	if err != nil {
 		return fmt.Errorf("MMap creation failed %w", err)
@@ -60,25 +88,45 @@ func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier)) error {
 			fmt.Printf("Error %v\n", err)
 			return
 		}
+
+		close(c.Progress)
 	}()
+
+	stat, err := os.Stat(c.SourceFilepath)
+	if err != nil {
+		return fmt.Errorf("Error %v\n", err)
+	}
+
+	progress := Progress{
+		BytesWritten: 0,
+		TotalBytes:   stat.Size(),
+	}
+	c.Progress <- progress
 
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		Read(c)
-		fmt.Print("Read Done\n")
+		// fmt.Print("Read Done\n")
 	}()
+
 	go func() {
 		defer wg.Done()
-		Write(c)
-		fmt.Print("Write Done\n")
+		writeStats := Write(c)
+
+		for n := range writeStats {
+			progress.BytesWritten += n
+			c.Progress <- progress
+		}
+		// fmt.Print("Write Done\n")
 	}()
 	wg.Wait()
+
 	return nil
 }
 
-func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier)) error {
+func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan int) error {
 	// Benchmark the copy
 
 	// Benchmark the dd
@@ -89,7 +137,7 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier)) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Time taken by dd to write a 1GB file %v /GB \n", time.Now().Sub(start))
+	fmt.Printf("Time taken by dd  %v GB/s \n", 1/time.Now().Sub(start).Seconds())
 
 	// Defer the removal of the source file
 	defer func() {
@@ -107,7 +155,7 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier)) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Time taken %v /GB \n", time.Now().Sub(start))
+	// fmt.Printf("Time taken %v /GB \n", time.Now().Sub(start))
 
 	// Defer the removal of the destination file
 	defer func() {
@@ -126,7 +174,7 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier)) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Time taken %v /GB \n", time.Now().Sub(start))
+	fmt.Printf("Time taken %v GB/s \n", 1/time.Now().Sub(start).Seconds())
 
 	return nil
 }

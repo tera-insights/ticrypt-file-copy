@@ -7,9 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/superhawk610/bar"
 	"github.com/tera-insights/ticrypt-file-copy/copy"
 	"github.com/tera-insights/ticrypt-file-copy/daemon"
 	ticrypt "github.com/tera-insights/ticrypt-go"
+	"github.com/ttacon/chalk"
 	"github.com/urfave/cli/v2"
 )
 
@@ -33,7 +35,28 @@ func main() {
 			}
 
 			// Copy the file
-			err := copy.NewCopier(source, destination, 4).Copy(copy.Read, copy.Write)
+
+			progress := make(chan copy.Progress)
+			go func() {
+				stat := <-progress
+				b := bar.NewWithOpts(
+					bar.WithDimensions(int(stat.TotalBytes), 20),
+					bar.WithFormat(
+						fmt.Sprintf(
+							" %scopying... %s :percent :bar %s:rate Bytes/s%s :eta",
+							chalk.Blue,
+							chalk.Reset,
+							chalk.Green,
+							chalk.Reset,
+						),
+					),
+				)
+				for p := range progress {
+					b.Update(p.BytesWritten, bar.Context{})
+				}
+				b.Done()
+			}()
+			err := copy.NewCopier(source, destination, 4, progress).Copy(copy.Read, copy.Write)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 			}
@@ -61,6 +84,12 @@ func main() {
 						return err
 					}
 
+					err = recover()
+					if err != nil {
+						fmt.Printf("Error: %v\n", err)
+						return err
+					}
+
 					// Create the daemon
 					daemon := daemon.NewDaemon(hostID, &tcClient)
 					// Start the daemon
@@ -76,6 +105,16 @@ func main() {
 
 					// Stop the job manager
 					daemon.Close()
+
+					return nil
+				},
+			},
+			{
+				Name:      "recover",
+				Aliases:   []string{"r"},
+				Usage:     "Recover inturrupted copy",
+				UsageText: "recover",
+				Action: func(c *cli.Context) error {
 
 					return nil
 				},
@@ -97,7 +136,27 @@ func main() {
 					}
 
 					// Benchmark the copy
-					err := copy.NewCopier(source, destination, 4).Benchmark(copy.Read, copy.Write)
+					progress := make(chan copy.Progress)
+					go func() {
+						stat := <-progress
+						b := bar.NewWithOpts(
+							bar.WithDimensions(int(stat.TotalBytes), 20),
+							bar.WithFormat(
+								fmt.Sprintf(
+									" %s copying...%s :percent :bar %s:rate Bytes/s%s :eta",
+									chalk.Blue,
+									chalk.Reset,
+									chalk.Green,
+									chalk.Reset,
+								),
+							),
+						)
+						for p := range progress {
+							b.Update(p.BytesWritten, bar.Context{})
+						}
+						b.Done()
+					}()
+					err := copy.NewCopier(source, destination, 4, progress).Benchmark(copy.Read, copy.Write)
 					if err != nil {
 						fmt.Printf("Error: %v\n", err)
 					}
