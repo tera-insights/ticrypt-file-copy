@@ -9,18 +9,18 @@ import (
 
 type webSocketListener struct {
 	stop     chan any
-	handlers map[string]func(json.RawMessage)
+	handlers map[string]func(*websocket.Conn, json.RawMessage)
 }
 
 func newWebSocketListener() *webSocketListener {
 	listener := &webSocketListener{
 		stop:     make(chan any),
-		handlers: make(map[string]func(json.RawMessage)),
+		handlers: make(map[string]func(*websocket.Conn, json.RawMessage)),
 	}
 	return listener
 }
 
-func (l *webSocketListener) Register(updateType string, f func(json.RawMessage)) {
+func (l *webSocketListener) Register(updateType string, f func(*websocket.Conn, json.RawMessage)) {
 	l.handlers[updateType] = f
 }
 
@@ -57,7 +57,7 @@ func (l *webSocketListener) Listen(conn *websocket.Conn) error {
 			}
 
 			var msg struct {
-				Type  string          `json:"type"`
+				MsgID string          `json:"msg_id"`
 				Event string          `json:"event"`
 				Data  json.RawMessage `json:"data"`
 			}
@@ -73,7 +73,7 @@ func (l *webSocketListener) Listen(conn *websocket.Conn) error {
 				continue
 			}
 
-			go handler(msg.Data)
+			go handler(conn, msg.Data)
 		}
 	}
 }

@@ -29,7 +29,7 @@ func NewDaemon(port string, allowed_hosts []string) *daemon {
 }
 
 func (d *daemon) Start() error {
-	d.listener.Register("copy", func(data json.RawMessage) {
+	d.listener.Register("copy", func(conn *websocket.Conn, data json.RawMessage) {
 		var copyMsg struct {
 			SourceFilepath      string `json:"sourceFilepath"`
 			DestinationFilePath string `json:"destinationFilePath"`
@@ -40,11 +40,16 @@ func (d *daemon) Start() error {
 			return
 		}
 		progress := make(chan copy.Progress)
+		go func() {
+			for p := range progress {
+				conn.WriteJSON(p)
+			}
+		}()
 		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
 		copier.Copy(copy.Read, copy.Write)
 		return
 	})
-	d.listener.Register("benchmark", func(data json.RawMessage) {
+	d.listener.Register("benchmark", func(conn *websocket.Conn, data json.RawMessage) {
 		var copyMsg struct {
 			SourceFilepath      string `json:"sourceFilepath"`
 			DestinationFilePath string `json:"destinationFilePath"`
@@ -59,13 +64,15 @@ func (d *daemon) Start() error {
 		copier.Benchmark(copy.Read, copy.Write)
 		return
 	})
-	d.listener.Register("stop", func(data json.RawMessage) {
+	d.listener.Register("stop", func(conn *websocket.Conn, data json.RawMessage) {
 		d.Close()
 		return
 	})
 
 	http.HandleFunc("/ws", d.Serve)
+	fmt.Println("Starting Deamon on port", d.port)
 	http.ListenAndServe(fmt.Sprintf(":%s", d.port), nil)
+	fmt.Println("Shutting Down Deamon")
 	return nil
 }
 
