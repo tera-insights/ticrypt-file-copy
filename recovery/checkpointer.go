@@ -15,9 +15,15 @@ type Checkpointer struct {
 }
 
 func NewCheckpointer(dbPath string) checkpointer {
-	return &Checkpointer{
+	checkpointer := &Checkpointer{
 		dbPath: dbPath,
 	}
+	db, err := checkpointer.getDB()
+	if err != nil {
+		return checkpointer
+	}
+	db.AutoMigrate(&Checkpoint{})
+	return checkpointer
 }
 
 func (c *Checkpointer) getDB() (*gorm.DB, error) {
@@ -73,6 +79,6 @@ func (c *Checkpointer) GetInProgressCheckpoints() ([]*Checkpoint, error) {
 	}
 
 	var checkpoint []*Checkpoint
-	err = db.Where("status = ?", StatusInProgress).First(&checkpoint).Error
+	err = db.Where("status = ?", StatusInProgress).Find(&checkpoint).Error
 	return checkpoint, err
 }
