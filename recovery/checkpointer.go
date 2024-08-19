@@ -1,6 +1,9 @@
 package recovery
 
 import (
+	"os"
+	"path/filepath"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -19,6 +22,17 @@ func NewCheckpointer(dbPath string) checkpointer {
 
 func (c *Checkpointer) getDB() (*gorm.DB, error) {
 	if c.db == nil {
+		_, err := os.Stat(c.dbPath)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return nil, err
+			}
+			err = os.MkdirAll(filepath.Dir(c.dbPath), 0755)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		db, err := gorm.Open(sqlite.Open(c.dbPath), &gorm.Config{})
 		if err != nil {
 			return nil, err

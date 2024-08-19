@@ -12,11 +12,8 @@ import (
 	"github.com/ttacon/chalk"
 )
 
-const DB = "ticp.db"
-const PATH = "/etc/ticp"
-
-func recover() error {
-	checkpointer := recovery.NewCheckpointer(filepath.Join(PATH, DB))
+func recover(config *config) error {
+	checkpointer := recovery.NewCheckpointer(filepath.Join(config.Storage.Path, config.Storage.Db))
 	cm := recovery.NewCheckpointManager(checkpointer)
 	checkpoints, err := cm.GetInProgressCheckpoints()
 	if err != nil {

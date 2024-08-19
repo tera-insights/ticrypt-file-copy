@@ -20,7 +20,7 @@ func Write(copier *Copier) <-chan int {
 		defer close(copier.WriteDone)
 		// Write the file
 		copier.WriteDone <- 0
-		for offset := copier.StartingOffset; ; offset += int64(copier.ChunkSize * 1024 * 1024) {
+		for offset := copier.StartingOffset; ; offset += int64(copier.ChunkSize) {
 			// Write the file
 			if n, ok := <-copier.ReadDone; ok {
 				_, err := fd.WriteAt(copier.MmapWrite[:n], int64(offset))

@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/sys/unix"
 )
 
-const DEFAULT_CHUNK_SIZE = 4 //In MB
+const DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024 //In MB
 
 type Progress struct {
 	BytesWritten int
@@ -18,6 +19,8 @@ type Progress struct {
 }
 
 type Copier struct {
+	CopyID string
+
 	SourceFilepath      string
 	DestinationFilePath string
 	ChunkSize           int //In MB
@@ -37,9 +40,10 @@ func NewCopier(SourceFilepath string, DestinationFilePath string, chunkSize int,
 		chunkSize = DEFAULT_CHUNK_SIZE
 	}
 	copier := &Copier{
+		CopyID:              uuid.NewV4().String(),
 		SourceFilepath:      SourceFilepath,
 		DestinationFilePath: DestinationFilePath,
-		ChunkSize:           chunkSize,
+		ChunkSize:           chunkSize * 1024 * 1024,
 		ReadDone:            make(chan int),
 		WriteDone:           make(chan int),
 		Progress:            progress,
@@ -64,13 +68,13 @@ func NewRecoveryCopier(SourceFilepath string, DestinationFilePath string, chunkS
 }
 
 func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) error {
-	mmap, err := unix.Mmap(0, 0, c.ChunkSize*1024*1024, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
+	mmap, err := unix.Mmap(0, 0, c.ChunkSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
 	if err != nil {
 		return fmt.Errorf("MMap creation failed %w", err)
 	}
 	c.MmapRead = mmap
 
-	mmap, err = unix.Mmap(0, 0, c.ChunkSize*1024*1024, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
+	mmap, err = unix.Mmap(0, 0, c.ChunkSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
 	if err != nil {
 		return fmt.Errorf("MMap creation failed %w", err)
 	}

@@ -18,7 +18,7 @@ func Read(copier *Copier) {
 	defer close(copier.ReadDone)
 
 	// Read the file
-	for offset := copier.StartingOffset; ; offset += int64(copier.ChunkSize * 1024 * 1024) {
+	for offset := copier.StartingOffset; ; offset += int64(copier.ChunkSize) {
 		// Read the file
 		n, err := fd.ReadAt(copier.MmapRead, int64(offset))
 		<-copier.WriteDone

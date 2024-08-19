@@ -2,28 +2,33 @@ package daemon
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
 
+	"github.com/gorilla/websocket"
 	"github.com/tera-insights/ticrypt-file-copy/copy"
-	ticrypt "github.com/tera-insights/ticrypt-go"
 )
 
 type daemon struct {
-	tcClient *ticrypt.Client
-	listener *webSocketListener
-	hostID   string
+	allowed_hosts []string
+	port          string
+	listener      *webSocketListener
 }
 
-func NewDaemon(hostID string, tcClient *ticrypt.Client) *daemon {
+type ticpConfig struct {
+	Host string `toml:"host"`
+}
+
+func NewDaemon(port string, allowed_hosts []string) *daemon {
 	daemon := &daemon{
-		tcClient: tcClient,
-		listener: newWebSocketListener(hostID, *tcClient),
-		hostID:   hostID,
+		port:     port,
+		listener: newWebSocketListener(),
 	}
 	return daemon
 }
 
-func (d *daemon) Start() {
+func (d *daemon) Start() error {
 	d.listener.Register("copy", func(data json.RawMessage) {
 		var copyMsg struct {
 			SourceFilepath      string `json:"sourceFilepath"`
@@ -59,9 +64,45 @@ func (d *daemon) Start() {
 		return
 	})
 
-	go d.listener.run()
+	http.HandleFunc("/ws", d.Serve)
+	http.ListenAndServe(fmt.Sprintf(":%s", d.port), nil)
+	return nil
 }
 
 func (d *daemon) Close() {
 	d.listener.Close()
+}
+
+var upgrader = websocket.Upgrader{}
+
+func internalError(ws *websocket.Conn, msg string, err error) {
+	log.Println(msg, err)
+	ws.WriteMessage(websocket.TextMessage, []byte("Internal server error."))
+}
+
+func (d *daemon) Serve(w http.ResponseWriter, r *http.Request) {
+
+	if !isHostAllowed(r.Host, d.allowed_hosts) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("upgrade:", err)
+		return
+	}
+
+	d.listener.Listen(ws)
+
+	defer ws.Close()
+}
+
+func isHostAllowed(host string, allowed_hosts []string) bool {
+	for _, allowed_host := range allowed_hosts {
+		if host == allowed_host {
+			return true
+		}
+	}
+	return false
 }

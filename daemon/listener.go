@@ -3,25 +3,17 @@ package daemon
 import (
 	"encoding/json"
 	"log"
-	"time"
 
 	"github.com/gorilla/websocket"
-	ticrypt "github.com/tera-insights/ticrypt-go"
 )
 
 type webSocketListener struct {
-	hostID   string
-	tcClient ticrypt.Client
-
-	conn     *websocket.Conn
 	stop     chan any
 	handlers map[string]func(json.RawMessage)
 }
 
-func newWebSocketListener(hostID string, tcClient ticrypt.Client) *webSocketListener {
+func newWebSocketListener() *webSocketListener {
 	listener := &webSocketListener{
-		hostID:   hostID,
-		tcClient: tcClient,
 		stop:     make(chan any),
 		handlers: make(map[string]func(json.RawMessage)),
 	}
@@ -40,31 +32,22 @@ func (l *webSocketListener) Close() {
 	close(l.stop)
 }
 
-func (l *webSocketListener) run() {
+func (l *webSocketListener) Listen(conn *websocket.Conn) error {
 	for {
 		select {
 		case <-l.stop:
-			if l.conn != nil {
-				l.conn.Close()
+			if conn != nil {
+				conn.Close()
 			}
-			return
+			return nil
 		default:
-			conn, err := l.GetConnection()
-			if err != nil {
-				log.Printf("error getting connection: %s\n", err.Error())
-				log.Printf("retrying in 5 seconds\n")
-				time.Sleep(5 * time.Second)
-				continue
-			}
-
 			msgType, data, err := conn.ReadMessage()
 			if err != nil {
 				if !websocket.IsCloseError(err, websocket.CloseAbnormalClosure) {
 					log.Printf("error reading message: %s\n", err.Error())
 				}
 
-				conn.Close()
-				l.conn = nil
+				l.stop <- true
 				continue
 			}
 
@@ -93,18 +76,4 @@ func (l *webSocketListener) run() {
 			go handler(msg.Data)
 		}
 	}
-}
-
-func (l *webSocketListener) GetConnection() (*websocket.Conn, error) {
-	if l.conn == nil {
-		conn, err := l.tcClient.NewConnToHostUpdates(l.hostID)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Printf("connected to host updates\n")
-		l.conn = conn
-	}
-
-	return l.conn, nil
 }
