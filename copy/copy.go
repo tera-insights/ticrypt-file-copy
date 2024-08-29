@@ -68,13 +68,13 @@ func NewRecoveryCopier(SourceFilepath string, DestinationFilePath string, chunkS
 }
 
 func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) error {
-	mmap, err := unix.Mmap(0, 0, c.ChunkSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
+	mmap, err := unix.Mmap(-1, 0, c.ChunkSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
 	if err != nil {
 		return fmt.Errorf("MMap creation failed %w", err)
 	}
 	c.MmapRead = mmap
 
-	mmap, err = unix.Mmap(0, 0, c.ChunkSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
+	mmap, err = unix.Mmap(-1, 0, c.ChunkSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
 	if err != nil {
 		return fmt.Errorf("MMap creation failed %w", err)
 	}
