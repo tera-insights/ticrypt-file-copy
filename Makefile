@@ -32,7 +32,7 @@ build_debug: bin/debug/ticrypt-file-copy
 ## Installation
 
 install: build
-	cp bin/ticrypt-file-copy /usr/local/bin/ticp
+	cp bin/ticp /usr/local/bin/ticp
 
 ## Testing
 test: mocks
