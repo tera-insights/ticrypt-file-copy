@@ -46,7 +46,7 @@ func fetchConfig() *config {
 				Path: "/var/lib/ticp",
 			},
 			Copy: copyConfig{
-				ChunkSize: 4 * 1024 * 1024,
+				ChunkSize: 4,
 			},
 		}
 	}

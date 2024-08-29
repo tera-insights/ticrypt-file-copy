@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024 //In MB
+const DEFAULT_CHUNK_SIZE = 4 //In MB
 
 type Progress struct {
 	BytesWritten int
