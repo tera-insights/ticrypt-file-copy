@@ -33,6 +33,7 @@ build_debug: bin/debug/ticrypt-file-copy
 
 install: build
 	cp bin/ticp /usr/local/bin/ticp
+	cp ticp.conf /etc/ticp/ticp.conf
 
 ## Testing
 test: mocks
