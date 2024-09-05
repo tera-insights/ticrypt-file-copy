@@ -27,6 +27,9 @@ Simple CLI/Library to copy files at high speed
 Basic principle is to use memory that is allocated using MMAP. This allows us to get page aligned memory instead of getting random memory on the heap. When we copy files using this memory we are able to levarage Direct Memory Access (DMA) which is much faster.
 We are also maximising the performance by using a gorutine(for non-go users Goruoutine is a thread) for read and a separate gorotuine for write. We have a read buffer and a write buffer which are individually provisioned using MMAP. We switch between the read and write buffer when the read buffer is full and the write buffer has been written to disk. This allows us to squeeze the maximum performance out of the system when the write is slower, since we already have the read buffer ready to go by the time the write completes.
 
+We tried to use DirectIO but as explained in this thread, we were getting much worse performance with it
+https://github.com/ncw/directio/issues/2
+
 ### Configuration
 The configuration file is located at `/var/lib/ticp/ticp.toml`. The configuration file is in TOML format. The configuration file has the following options:
 
