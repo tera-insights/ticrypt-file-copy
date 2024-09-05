@@ -30,9 +30,8 @@ type config struct {
 }
 
 func fetchConfig() *config {
-	// Read the config file
-	content, err := os.ReadFile(CONFIG_FILE)
-	if err != nil {
+
+	returnDefaultConfig := func(err error) *config {
 		fmt.Printf("[Warning]Error reading config file: %v: Using defaults\n", err)
 
 		// Return the default config
@@ -51,9 +50,18 @@ func fetchConfig() *config {
 		}
 	}
 
+	// Read the config file
+	content, err := os.ReadFile(CONFIG_FILE)
+	if err != nil {
+		return returnDefaultConfig(err)
+	}
+
 	// Parse the config file
-	var config *config
-	toml.Unmarshal(content, config)
+	var config config
+	err = toml.Unmarshal(content, config)
+	if err != nil {
+		return returnDefaultConfig(err)
+	}
 	// Return the config
-	return config
+	return &config
 }
