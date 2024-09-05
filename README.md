@@ -11,6 +11,14 @@ Simple CLI/Library to copy files at high speed
 - CLI interface
 - Recovery Mode
 
+### Benchmark
+| Copy Mechanism | File Size | Rate of Copy            |
+|----------------|-----------|-------------------------|
+| DD             | 1Gb       | 220.72088541764163 MB/s |
+| Rsync          | 1GB       | 302.5921221112022 MB/s  |
+| ticp           | 1GB       | 919.0 MB/s              |
+
+
 
 ### Build
 ```make build```

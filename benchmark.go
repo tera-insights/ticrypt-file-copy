@@ -14,10 +14,10 @@ func benchmark(source string, destination string, config *config) error {
 	go func() {
 		stat := <-progress
 		b := bar.NewWithOpts(
-			bar.WithDimensions(int(stat.TotalBytes), 20),
+			bar.WithDimensions(int(stat.TotalBytes/1024/1024), 20),
 			bar.WithFormat(
 				fmt.Sprintf(
-					" %s copying...%s :percent :bar %s:rate Bytes/s%s :eta",
+					" %s copying...%s :percent :bar %s:rate MB/s%s :eta",
 					chalk.Blue,
 					chalk.Reset,
 					chalk.Green,
@@ -26,7 +26,7 @@ func benchmark(source string, destination string, config *config) error {
 			),
 		)
 		for p := range progress {
-			b.Update(p.BytesWritten, bar.Context{})
+			b.Update(p.BytesWritten/1024/1024, bar.Context{})
 		}
 		b.Done()
 	}()

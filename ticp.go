@@ -17,7 +17,7 @@ func ticp(source string, destination string, config *config) error {
 			bar.WithDimensions(int(stat.TotalBytes), 20),
 			bar.WithFormat(
 				fmt.Sprintf(
-					" %scopying... %s :percent :bar %s:rate Bytes/s%s :eta",
+					" %scopying... %s :percent :bar %s:rate Bytes%s :eta",
 					chalk.Blue,
 					chalk.Reset,
 					chalk.Green,

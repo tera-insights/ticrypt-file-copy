@@ -141,29 +141,11 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan in
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Time taken by dd  %v GB/s \n", 1/time.Now().Sub(start).Seconds())
+	fmt.Printf("Time taken by dd  %v MB/s \n", 1024/time.Since(start).Seconds())
 
 	// Defer the removal of the source file
 	defer func() {
 		cmd = exec.Command("rm", "source")
-		err = cmd.Run()
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-		}
-	}()
-
-	// Benchmark the ticrypt-file-copy
-	fmt.Println("ticrypt-file-copy Benchmark")
-	start = time.Now()
-	err = c.Copy(Read, Write)
-	if err != nil {
-		return err
-	}
-	// fmt.Printf("Time taken %v /GB \n", time.Now().Sub(start))
-
-	// Defer the removal of the destination file
-	defer func() {
-		cmd = exec.Command("rm", "destination")
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -178,7 +160,24 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan in
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Time taken %v GB/s \n", 1/time.Now().Sub(start).Seconds())
+	fmt.Printf("Time taken %v MB/s \n", 1024/time.Since(start).Seconds())
+
+	// Benchmark the ticrypt-file-copy
+	fmt.Println("ticrypt-file-copy Benchmark")
+	err = c.Copy(Read, Write)
+	if err != nil {
+		return err
+	}
+	// fmt.Printf("Time taken %v /GB \n", time.Now().Sub(start))
+
+	// Defer the removal of the destination file
+	defer func() {
+		cmd = exec.Command("rm", "destination")
+		err = cmd.Run()
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+		}
+	}()
 
 	return nil
 }
