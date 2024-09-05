@@ -135,7 +135,7 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan in
 
 	// Benchmark the dd
 	fmt.Println("DD Benchmark")
-	cmd := exec.Command("dd", []string{"if=/dev/urandom", "of=source", "bs=8M", "count=640", "iflag=fullblock"}...)
+	cmd := exec.Command("dd", []string{"if=/dev/urandom", "of=source", "bs=8M", "count=1280", "iflag=fullblock"}...)
 	start := time.Now()
 	err := cmd.Run()
 	if err != nil {

@@ -10,7 +10,7 @@ func Write(copier *Copier) <-chan int {
 	stats := make(chan int)
 	go func() {
 		defer close(stats)
-		// fd, err := os.OpenFile(copier.DestinationFilePath, os.O_WRONLY|os.O_CREATE|syscall.O_DIRECT, 0644)
+		// fd, err := os.OpenFile(copier.DestinationFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC|syscall.O_DIRECT, 0666)
 		fd, err := os.Create(copier.DestinationFilePath)
 		if err != nil {
 			fmt.Printf("Error %v\n", err)
