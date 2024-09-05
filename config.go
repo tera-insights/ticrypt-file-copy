@@ -58,7 +58,7 @@ func fetchConfig() *config {
 
 	// Parse the config file
 	var config config
-	err = toml.Unmarshal(content, config)
+	err = toml.Unmarshal(content, &config)
 	if err != nil {
 		return returnDefaultConfig(err)
 	}

@@ -1,7 +1,7 @@
 # Copyright 2024 Tera Insights, LLC. All rights reserved.
 
 ## Do not modify; this is maintained by a Github Action. 
-VERSION := $(shell grep 'current_version =' .bumpversion.toml | sed 's/^[[:space:]]*current_version = //')
+VERSION := $(shell grep 'current_version =' .bumpversion.toml | sed 's/^[[:space:]]*current_version = //'| tr -d '"')
 VERSION_WO_DASHES = $(subst -,.,$(VERSION))
 
 GOLANG_PKG := github.com/tera-insights/ticrypt-file-copy
