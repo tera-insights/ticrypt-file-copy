@@ -16,7 +16,7 @@ Simple CLI/Library to copy files at high speed
 |----------------|-----------|-------------------------|
 | DD             | 1Gb       | 220.7 MB/s              |
 | Rsync          | 1GB       | 302.5 MB/s              |
-| Rsync          | 1GB       | 547.4 MB/s              |
+| cp             | 1GB       | 547.4 MB/s              |
 | ticp           | 1GB       | 919.0 MB/s              |
 
 
