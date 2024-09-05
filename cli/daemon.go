@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -6,13 +6,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/tera-insights/ticrypt-file-copy/config"
 	"github.com/tera-insights/ticrypt-file-copy/daemon"
 )
 
-func startDaemon(config *config) error {
+func StartDaemon(config *config.Config) error {
 	// Start the daemon
 	// Try to recover any in progress copies since last time the daemon was running
-	err := recover(config)
+	err := Recover(config)
 	if err != nil {
 		return err
 	}
@@ -20,7 +21,10 @@ func startDaemon(config *config) error {
 	// Create the daemon
 	daemon := daemon.NewDaemon(config.Server.Port, config.Server.AllowedHosts)
 	// Start the daemon
-	daemon.Start()
+	err = daemon.Start()
+	if err != nil {
+		return err
+	}
 
 	// Wait for stop signal
 	stopSignal := make(chan os.Signal, 1)

@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"errors"
@@ -7,12 +7,13 @@ import (
 	"sync"
 
 	"github.com/superhawk610/bar"
+	"github.com/tera-insights/ticrypt-file-copy/config"
 	"github.com/tera-insights/ticrypt-file-copy/copy"
 	"github.com/tera-insights/ticrypt-file-copy/recovery"
 	"github.com/ttacon/chalk"
 )
 
-func recover(config *config) error {
+func Recover(config *config.Config) error {
 	checkpointer := recovery.NewCheckpointer(filepath.Join(config.Storage.Path, config.Storage.Db))
 	cm := recovery.NewCheckpointManager(checkpointer)
 	checkpoints, err := cm.GetInProgressCheckpoints()

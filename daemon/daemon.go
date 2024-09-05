@@ -16,10 +16,6 @@ type daemon struct {
 	listener      *webSocketListener
 }
 
-type ticpConfig struct {
-	Host string `toml:"host"`
-}
-
 func NewDaemon(port string, allowed_hosts []string) *daemon {
 	daemon := &daemon{
 		port:     port,
@@ -47,7 +43,6 @@ func (d *daemon) Start() error {
 		}()
 		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
 		copier.Copy(copy.Read, copy.Write)
-		return
 	})
 	d.listener.Register("benchmark", func(conn *websocket.Conn, data json.RawMessage) {
 		var copyMsg struct {
@@ -62,11 +57,9 @@ func (d *daemon) Start() error {
 		progress := make(chan copy.Progress)
 		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
 		copier.Benchmark(copy.Read, copy.Write)
-		return
 	})
 	d.listener.Register("stop", func(conn *websocket.Conn, data json.RawMessage) {
 		d.Close()
-		return
 	})
 
 	http.HandleFunc("/ws", d.Serve)

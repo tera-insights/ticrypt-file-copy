@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -23,19 +23,19 @@ type copyConfig struct {
 	ChunkSize int `toml:"chunk_size"`
 }
 
-type config struct {
+type Config struct {
 	Server  server     `toml:"server"`
 	Storage storage    `toml:"storage"`
 	Copy    copyConfig `toml:"copy"`
 }
 
-func fetchConfig() *config {
+func FetchConfig() *Config {
 
-	returnDefaultConfig := func(err error) *config {
+	returnDefaultConfig := func(err error) *Config {
 		fmt.Printf("[Warning]Error reading config file: %v: Using defaults\n", err)
 
 		// Return the default config
-		return &config{
+		return &Config{
 			Server: server{
 				AllowedHosts: []string{"localhost"},
 				Port:         "4242",
@@ -57,7 +57,7 @@ func fetchConfig() *config {
 	}
 
 	// Parse the config file
-	var config config
+	var config Config
 	err = toml.Unmarshal(content, &config)
 	if err != nil {
 		return returnDefaultConfig(err)

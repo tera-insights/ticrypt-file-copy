@@ -5,12 +5,14 @@ import (
 	"log"
 	"os"
 
+	ticli "github.com/tera-insights/ticrypt-file-copy/cli"
+	"github.com/tera-insights/ticrypt-file-copy/config"
 	"github.com/urfave/cli/v2"
 )
 
 func main() {
 	// Read the config
-	config := fetchConfig()
+	config := config.FetchConfig()
 	// Create the CLI app
 	app := &cli.App{
 		Name:      "ticrypt-file-copy",
@@ -29,7 +31,7 @@ func main() {
 				return nil
 			}
 			// Copy the file
-			return ticp(source, destination, config)
+			return ticli.Ticp(source, destination, config)
 		},
 
 		Commands: []*cli.Command{
@@ -44,7 +46,7 @@ func main() {
 					if port != "" {
 						config.Server.Port = port
 					}
-					return startDaemon(config)
+					return ticli.StartDaemon(config)
 				},
 			},
 			{
@@ -53,7 +55,7 @@ func main() {
 				Usage:     "Recover inturrupted copy",
 				UsageText: "recover",
 				Action: func(c *cli.Context) error {
-					return recover(config)
+					return ticli.Recover(config)
 				},
 			},
 			{
@@ -71,7 +73,7 @@ func main() {
 					if destination == "" {
 						destination = "destination"
 					}
-					return benchmark(source, destination, config)
+					return ticli.Benchmark(source, destination, config)
 				},
 			},
 		},

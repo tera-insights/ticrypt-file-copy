@@ -162,6 +162,16 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan in
 	}
 	fmt.Printf("Time taken %v MB/s \n", 1024/time.Since(start).Seconds())
 
+	// Benchmark cp
+	fmt.Println("cp Benchmark")
+	cmd = exec.Command("cp", []string{"source", "destination"}...)
+	start = time.Now()
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Time taken %v MB/s \n", 1024/time.Since(start).Seconds())
+
 	// Benchmark the ticrypt-file-copy
 	fmt.Println("ticrypt-file-copy Benchmark")
 	err = c.Copy(Read, Write)
