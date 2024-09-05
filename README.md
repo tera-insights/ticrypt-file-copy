@@ -5,7 +5,7 @@ Simple CLI/Library to copy files at high speed
 
 ### Features
 - High speed file copy
-- Daemon mode
+- Daemon mode (Accepts requests over a tcp websocket)[In testing]
 - Benchmark mode
 - Progress bar
 - CLI interface

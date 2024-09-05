@@ -1,6 +1,7 @@
 package recovery
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 
@@ -22,7 +23,10 @@ func NewCheckpointer(dbPath string) checkpointer {
 	if err != nil {
 		return checkpointer
 	}
-	db.AutoMigrate(&Checkpoint{})
+	err = db.AutoMigrate(&Checkpoint{})
+	if err != nil {
+		log.Printf("Error migrating checkpoint table: %s\n", err.Error())
+	}
 	return checkpointer
 }
 
@@ -55,10 +59,9 @@ func (c *Checkpointer) CreateCheckpoint(checkpoint *Checkpoint) error {
 		return err
 	}
 
-	err = db.Clauses(clause.OnConflict{
+	return db.Clauses(clause.OnConflict{
 		UpdateAll: true,
 	}).Create(checkpoint).Error
-	return c.db.Create(checkpoint).Error
 }
 
 func (c *Checkpointer) GetCheckpoints() ([]*Checkpoint, error) {

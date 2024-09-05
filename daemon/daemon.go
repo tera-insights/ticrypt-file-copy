@@ -38,11 +38,17 @@ func (d *daemon) Start() error {
 		progress := make(chan copy.Progress)
 		go func() {
 			for p := range progress {
-				conn.WriteJSON(p)
+				err := conn.WriteJSON(p)
+				if err != nil {
+					log.Printf("error writing progress: %s\n", err.Error())
+				}
 			}
 		}()
 		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
-		copier.Copy(copy.Read, copy.Write)
+		err := copier.Copy(copy.Read, copy.Write)
+		if err != nil {
+			log.Printf("error copying file: %s\n", err.Error())
+		}
 	})
 	d.listener.Register("benchmark", func(conn *websocket.Conn, data json.RawMessage) {
 		var copyMsg struct {
@@ -56,7 +62,11 @@ func (d *daemon) Start() error {
 		}
 		progress := make(chan copy.Progress)
 		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
-		copier.Benchmark(copy.Read, copy.Write)
+		err := copier.Benchmark(copy.Read, copy.Write)
+		if err != nil {
+			log.Printf("error benchmarking file: %s\n", err.Error())
+		}
+
 	})
 	d.listener.Register("stop", func(conn *websocket.Conn, data json.RawMessage) {
 		d.Close()
@@ -64,7 +74,10 @@ func (d *daemon) Start() error {
 
 	http.HandleFunc("/ws", d.Serve)
 	fmt.Println("Starting Deamon on port", d.port)
-	http.ListenAndServe(fmt.Sprintf(":%s", d.port), nil)
+	err := http.ListenAndServe(fmt.Sprintf(":%s", d.port), nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
 	fmt.Println("Shutting Down Deamon")
 	return nil
 }
@@ -74,11 +87,6 @@ func (d *daemon) Close() {
 }
 
 var upgrader = websocket.Upgrader{}
-
-func internalError(ws *websocket.Conn, msg string, err error) {
-	log.Println(msg, err)
-	ws.WriteMessage(websocket.TextMessage, []byte("Internal server error."))
-}
 
 func (d *daemon) Serve(w http.ResponseWriter, r *http.Request) {
 
@@ -93,7 +101,11 @@ func (d *daemon) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d.listener.Listen(ws)
+	err = d.listener.Listen(ws)
+	if err != nil {
+		log.Println("listen:", err)
+		return
+	}
 
 	defer ws.Close()
 }

@@ -135,13 +135,14 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan in
 
 	// Benchmark the dd
 	fmt.Println("DD Benchmark")
-	cmd := exec.Command("dd", []string{"if=/dev/urandom", "of=source", "bs=64M", "count=16", "iflag=fullblock"}...)
+	cmd := exec.Command("dd", []string{"if=/dev/urandom", "of=source", "bs=8M", "count=640", "iflag=fullblock"}...)
 	start := time.Now()
 	err := cmd.Run()
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Time taken by dd  %v MB/s \n", 1024/time.Since(start).Seconds())
+	// Because the file is 5GB we multiply by 5*1024 to get the MB
+	fmt.Printf("Time taken by dd  %v MB/s \n", 5*1024/time.Since(start).Seconds())
 
 	// Defer the removal of the source file
 	defer func() {
@@ -160,7 +161,8 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan in
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Time taken %v MB/s \n", 1024/time.Since(start).Seconds())
+	// Because the file is 5GB we multiply by 5*1024 to get the MB
+	fmt.Printf("Time taken %v MB/s \n", 5*1024/time.Since(start).Seconds())
 
 	// Benchmark cp
 	fmt.Println("cp Benchmark")
@@ -170,7 +172,8 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan in
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Time taken %v MB/s \n", 1024/time.Since(start).Seconds())
+	// Because the file is 5GB we multiply by 5*1024 to get the MB
+	fmt.Printf("Time taken %v MB/s \n", 5*1024/time.Since(start).Seconds())
 
 	// Benchmark the ticrypt-file-copy
 	fmt.Println("ticrypt-file-copy Benchmark")
