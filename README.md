@@ -1,4 +1,4 @@
-# ticrypt-file-copy
+# ticrypt-file-copy [ticp]
 
 ### About
 Simple CLI/Library to copy files at high speed
