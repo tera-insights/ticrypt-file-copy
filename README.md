@@ -1,9 +1,9 @@
 # ticrypt-file-copy [ticp]
 
-### About
+## About
 Simple CLI/Library to copy files at high speed
 
-### Features
+## Features
 - High speed file copy
 - Daemon mode (Accepts requests over a tcp websocket)[In testing]
 - Benchmark mode
@@ -11,7 +11,7 @@ Simple CLI/Library to copy files at high speed
 - CLI interface
 - Recovery Mode
 
-### Benchmark
+## Benchmark
 | Copy Mechanism | File Size | Rate of Copy            |
 |----------------|-----------|-------------------------|
 | DD             | 1Gb       | 220.7 MB/s              |
@@ -23,7 +23,7 @@ Simple CLI/Library to copy files at high speed
 | ticp           | 1GB       | 919.0 MB/s              |
 | ticp           | 5GB       | 1043.8 MB/s             |
 
-### How it works
+## How it works
 Basic principle is to use memory that is allocated using MMAP. This allows us to get page aligned memory instead of getting random memory on the heap. When we copy files using this memory we are able to levarage Direct Memory Access (DMA) which is much faster.
 
 We are also maximising the performance by using a gorutine(for non-go users Goruoutine is a thread) for read and a separate gorotuine for write. We have a read buffer and a write buffer which are individually provisioned using MMAP. We switch between the read and write buffer when the read buffer is full and the write buffer has been written to disk. This allows us to squeeze the maximum performance out of the system when the write is slower, since we already have the read buffer ready to go by the time the write completes.
@@ -31,7 +31,7 @@ We are also maximising the performance by using a gorutine(for non-go users Goru
 We tried to use DirectIO but as explained in this thread, we were getting much worse performance with it
 https://github.com/ncw/directio/issues/2
 
-### Configuration
+## Configuration
 The configuration file is located at `/var/lib/ticp/ticp.toml`. The configuration file is in TOML format. The configuration file has the following options:
 
 ```toml
@@ -52,11 +52,13 @@ chunk_size = 4
 ```
 
 
-### Build
+## Build
 ```make build```
 
-### Install
+## Install
 ```make install```
+
+## Usage
 
 ### CLI Usage
 ```
@@ -104,3 +106,33 @@ Data for copy and benchmark event is
 Chunk size is in MB and is optional
 
 {"stop"} event does not require any data
+
+### Using as a Library in Go Code
+
+```golang
+   err := copy.NewCopier(source, destination, config.Copy.ChunkSize, progress).Copy(copy.Read, copy.Write)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return err
+	}
+```
+
+Copy object accepts custom Read and Write functions to suit your needs, or can be used with the default implementations
+Read function needs to be implemented as follows
+```golang
+Read func(c *Copier){
+   <implementation>
+}
+```
+Write function needs to be implemented as follows
+```golang
+Write func(c *Copier) <-chan int{
+   <implementation>
+}
+```
+
+
+
+
+
+
