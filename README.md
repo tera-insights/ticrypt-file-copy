@@ -58,7 +58,7 @@ chunk_size = 4
 ### Install
 ```make install```
 
-### Usage
+### CLI Usage
 ```
 NAME:
    ticrypt-file-copy - Hight performance tool to copy files
@@ -75,3 +75,32 @@ GLOBAL OPTIONS:
    --help, -h  show help
 ```
 
+### Websocket Usage
+
+Run the daemon using the following command
+```ticp start-daemon```
+
+The server listens on port 4242. The server accepts JSON messages in the following format
+
+```json
+{
+ msg_id: ""
+ event: ""
+ Data: {
+     .......   
+    }
+}
+```
+Event can be {"copy", "benchmark", "stop"}
+
+Data for copy and benchmark event is 
+```json
+{
+ sourceFilepath: ""
+ destinationFilePath: ""
+ chunkSize: ""
+}
+```
+Chunk size is in MB and is optional
+
+{"stop"} event does not require any data
