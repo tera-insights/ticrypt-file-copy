@@ -86,7 +86,7 @@ The server listens on port 4242. The server accepts JSON messages in the followi
 {
  msg_id: ""
  event: ""
- Data: {
+ data: {
      .......   
     }
 }
