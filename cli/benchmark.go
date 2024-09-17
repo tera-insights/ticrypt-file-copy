@@ -31,6 +31,12 @@ func Benchmark(source string, destination string, config *config.Config) error {
 		}
 		b.Done()
 	}()
+	if source == "" {
+		source = "source"
+	}
+	if destination == "" {
+		destination = "destination"
+	}
 	err := copy.NewCopier(source, destination, config.Copy.ChunkSize, progress).Benchmark(copy.Read, copy.Write)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)

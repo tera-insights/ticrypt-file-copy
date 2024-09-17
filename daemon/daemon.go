@@ -47,12 +47,20 @@ func (d *daemon) Start() error {
 				}
 			}
 		}()
+		if copyMsg.SourceFilepath == "" || copyMsg.DestinationFilePath == "" {
+			err := conn.WriteMessage(websocket.TextMessage, []byte("sourceFilepath and destinationFilePath are required"))
+			if err != nil {
+				log.Printf("error writing error message: %s\n", err.Error())
+			}
+			return
+		}
 		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
 		err := copier.Copy(copy.Read, copy.Write)
 		if err != nil {
 			log.Printf("error copying file: %s\n", err.Error())
 		}
 	})
+
 	d.listener.Register("benchmark", func(conn *websocket.Conn, data json.RawMessage) {
 		var copyMsg struct {
 			SourceFilepath      string `json:"sourceFilepath"`
@@ -64,20 +72,53 @@ func (d *daemon) Start() error {
 			return
 		}
 		progress := make(chan copy.Progress)
+		if copyMsg.SourceFilepath == "" {
+			copyMsg.SourceFilepath = "source"
+		}
+		if copyMsg.DestinationFilePath == "" {
+			copyMsg.DestinationFilePath = "destination"
+		}
 		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
-		err := copier.Benchmark(copy.Read, copy.Write)
-		if err != nil {
+
+		if err := conn.WriteMessage((websocket.TextMessage), []byte("Starting Benchmark")); err != nil {
+			log.Printf("error writing start benchmark message: %s\n", err.Error())
+		}
+
+		go func() {
+			for stat := range progress {
+				if err := conn.WriteJSON(stat); err != nil {
+					log.Printf("error writing progress: %s\n", err.Error())
+				}
+			}
+		}()
+
+		if err := copier.Benchmark(copy.Read, copy.Write); err != nil {
 			log.Printf("error benchmarking file: %s\n", err.Error())
+			err := conn.WriteMessage((websocket.TextMessage), []byte(fmt.Sprintf("error benchmarking file: %s\n", err.Error())))
+			if err != nil {
+				log.Printf("error writing error message: %s\n", err.Error())
+			}
+			return
+		}
+
+		if err := conn.WriteMessage((websocket.TextMessage), []byte("Benchmark Complete")); err != nil {
+			log.Printf("error writing benchmark complete message: %s\n", err.Error())
 		}
 	})
+
 	d.listener.Register("ping", func(conn *websocket.Conn, data json.RawMessage) {
 		err := conn.WriteMessage(websocket.TextMessage, data)
 		if err != nil {
 			log.Printf("error writing pong: %s\n", err.Error())
 		}
 	})
+
 	d.listener.Register("stop", func(conn *websocket.Conn, data json.RawMessage) {
 		d.Close()
+		err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		if err != nil {
+			log.Printf("error writing close message: %s\n", err.Error())
+		}
 	})
 
 	http.HandleFunc("/ws", d.Serve)

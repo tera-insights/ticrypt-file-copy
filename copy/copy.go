@@ -68,6 +68,10 @@ func NewRecoveryCopier(SourceFilepath string, DestinationFilePath string, chunkS
 }
 
 func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) error {
+	// Log file names
+	fmt.Printf("Source: %s\n", c.SourceFilepath)
+	fmt.Printf("Destination: %s\n", c.DestinationFilePath)
+
 	mmap, err := unix.Mmap(-1, 0, c.ChunkSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
 	if err != nil {
 		return fmt.Errorf("MMap creation failed %w", err)
@@ -79,6 +83,8 @@ func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) er
 		return fmt.Errorf("MMap creation failed %w", err)
 	}
 	c.MmapWrite = mmap
+
+	fmt.Println("MMap Created")
 
 	defer func() {
 		err := unix.Munmap(c.MmapRead)
@@ -96,10 +102,14 @@ func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) er
 		close(c.Progress)
 	}()
 
+	fmt.Println("MMap Closed")
+
 	stat, err := os.Stat(c.SourceFilepath)
 	if err != nil {
 		return fmt.Errorf("Error %v\n", err)
 	}
+
+	fmt.Printf("File Size: %v\n", stat.Size())
 
 	progress := Progress{
 		BytesWritten: 0,
@@ -112,7 +122,7 @@ func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) er
 	go func() {
 		defer wg.Done()
 		Read(c)
-		// fmt.Print("Read Done\n")
+		fmt.Print("Read Done\n")
 	}()
 
 	go func() {
@@ -123,10 +133,11 @@ func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) er
 			progress.BytesWritten += n
 			c.Progress <- progress
 		}
-		// fmt.Print("Write Done\n")
+		fmt.Print("Write Done\n")
 	}()
+	fmt.Print("Waiting for read and write to finish\n")
 	wg.Wait()
-
+	fmt.Print("Read and write finished\n")
 	return nil
 }
 
@@ -153,35 +164,16 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan in
 		}
 	}()
 
-	// Benchmark the rsync
-	fmt.Println("rsync Benchmark")
-	cmd = exec.Command("rsync", []string{"source", "destination"}...)
-	start = time.Now()
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-	// Because the file is 5GB we multiply by 5*1024 to get the MB
-	fmt.Printf("Time taken %v MB/s \n", 5*1024/time.Since(start).Seconds())
-
-	// Benchmark cp
-	fmt.Println("cp Benchmark")
-	cmd = exec.Command("cp", []string{"source", "destination"}...)
-	start = time.Now()
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-	// Because the file is 5GB we multiply by 5*1024 to get the MB
-	fmt.Printf("Time taken %v MB/s \n", 5*1024/time.Since(start).Seconds())
-
-	// Benchmark the ticrypt-file-copy
-	fmt.Println("ticrypt-file-copy Benchmark")
-	err = c.Copy(Read, Write)
-	if err != nil {
-		return err
-	}
-	// fmt.Printf("Time taken %v /GB \n", time.Now().Sub(start))
+	// // Benchmark the rsync
+	// fmt.Println("rsync Benchmark")
+	// cmd = exec.Command("rsync", []string{"source", "destination"}...)
+	// start = time.Now()
+	// err = cmd.Run()
+	// if err != nil {
+	// 	return err
+	// }
+	// // Because the file is 5GB we multiply by 5*1024 to get the MB
+	// fmt.Printf("Time taken %v MB/s \n", 5*1024/time.Since(start).Seconds())
 
 	// Defer the removal of the destination file
 	defer func() {
@@ -191,6 +183,24 @@ func (c *Copier) Benchmark(Read func(c *Copier), Write func(c *Copier) <-chan in
 			fmt.Printf("Error: %v\n", err)
 		}
 	}()
+
+	// // Benchmark cp
+	// fmt.Println("cp Benchmark")
+	// cmd = exec.Command("cp", []string{"source", "destination"}...)
+	// start = time.Now()
+	// err = cmd.Run()
+	// if err != nil {
+	// 	return err
+	// }
+	// // Because the file is 5GB we multiply by 5*1024 to get the MB
+	// fmt.Printf("Time taken %v MB/s \n", 5*1024/time.Since(start).Seconds())
+
+	// Benchmark the ticrypt-file-copy
+	fmt.Println("ticrypt-file-copy Benchmark")
+	err = c.Copy(Read, Write)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
