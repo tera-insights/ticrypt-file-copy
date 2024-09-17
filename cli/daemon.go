@@ -19,6 +19,9 @@ func StartDaemon(config *config.Config) error {
 	}
 
 	// Create the daemon
+	fmt.Println("Starting daemon...")
+	fmt.Printf("Listening on port %s\n", config.Server.Port)
+	fmt.Printf("Allowed hosts: %v\n", config.Server.AllowedHosts)
 	daemon := daemon.NewDaemon(config.Server.Port, config.Server.AllowedHosts)
 	// Start the daemon
 	err = daemon.Start()

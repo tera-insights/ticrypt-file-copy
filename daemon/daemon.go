@@ -2,9 +2,11 @@ package daemon
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	"github.com/tera-insights/ticrypt-file-copy/copy"
@@ -18,8 +20,9 @@ type daemon struct {
 
 func NewDaemon(port string, allowed_hosts []string) *daemon {
 	daemon := &daemon{
-		port:     port,
-		listener: newWebSocketListener(),
+		port:          port,
+		listener:      newWebSocketListener(),
+		allowed_hosts: allowed_hosts,
 	}
 	return daemon
 }
@@ -66,15 +69,20 @@ func (d *daemon) Start() error {
 		if err != nil {
 			log.Printf("error benchmarking file: %s\n", err.Error())
 		}
-
+	})
+	d.listener.Register("ping", func(conn *websocket.Conn, data json.RawMessage) {
+		err := conn.WriteMessage(websocket.TextMessage, data)
+		if err != nil {
+			log.Printf("error writing pong: %s\n", err.Error())
+		}
 	})
 	d.listener.Register("stop", func(conn *websocket.Conn, data json.RawMessage) {
 		d.Close()
 	})
 
 	http.HandleFunc("/ws", d.Serve)
-	fmt.Println("Starting Deamon on port", d.port)
-	err := http.ListenAndServe(fmt.Sprintf(":%s", d.port), nil)
+	addr := flag.String("addr", "localhost:4242", "http service address")
+	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
@@ -90,8 +98,9 @@ var upgrader = websocket.Upgrader{}
 
 func (d *daemon) Serve(w http.ResponseWriter, r *http.Request) {
 
-	if !isHostAllowed(r.Host, d.allowed_hosts) {
+	if !isHostAllowed(r.RemoteAddr, d.allowed_hosts) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
+		fmt.Printf("Forbidden request from %s, only %s allowed \n", r.Host, d.allowed_hosts)
 		return
 	}
 
@@ -100,19 +109,20 @@ func (d *daemon) Serve(w http.ResponseWriter, r *http.Request) {
 		log.Println("upgrade:", err)
 		return
 	}
+	defer ws.Close()
 
+	fmt.Printf("Listening for messages on connection to: %s \n", ws.RemoteAddr())
 	err = d.listener.Listen(ws)
 	if err != nil {
 		log.Println("listen:", err)
 		return
 	}
-
-	defer ws.Close()
+	fmt.Printf("Connection to %s closed \n", ws.RemoteAddr())
 }
 
 func isHostAllowed(host string, allowed_hosts []string) bool {
 	for _, allowed_host := range allowed_hosts {
-		if host == allowed_host {
+		if strings.Split(host, ":")[0] == allowed_host {
 			return true
 		}
 	}

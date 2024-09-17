@@ -33,47 +33,39 @@ func (l *webSocketListener) Close() {
 }
 
 func (l *webSocketListener) Listen(conn *websocket.Conn) error {
+	defer conn.Close()
 	for {
-		select {
-		case <-l.stop:
-			if conn != nil {
-				conn.Close()
+		msgType, data, err := conn.ReadMessage()
+		if err != nil {
+			if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+				log.Printf("error reading message: %s\n", err.Error())
+				return err
 			}
 			return nil
-		default:
-			msgType, data, err := conn.ReadMessage()
-			if err != nil {
-				if !websocket.IsCloseError(err, websocket.CloseAbnormalClosure) {
-					log.Printf("error reading message: %s\n", err.Error())
-				}
-
-				l.stop <- true
-				continue
-			}
-
-			if msgType != websocket.TextMessage {
-				log.Printf("unexpected message of type %d: %+v\n", msgType, data)
-				continue
-			}
-
-			var msg struct {
-				MsgID string          `json:"msg_id"`
-				Event string          `json:"event"`
-				Data  json.RawMessage `json:"data"`
-			}
-			err = json.Unmarshal(data, &msg)
-			if err != nil {
-				log.Printf("error unmarshalling message: %s\n", err.Error())
-				continue
-			}
-
-			handler, ok := l.handlers[msg.Event]
-			if !ok {
-				log.Printf("no handler for event: %s\n", msg.Event)
-				continue
-			}
-
-			go handler(conn, msg.Data)
 		}
+
+		if msgType != websocket.TextMessage {
+			log.Printf("unexpected message of type %d: %+v\n", msgType, data)
+			continue
+		}
+
+		var msg struct {
+			MsgID string          `json:"msg_id"`
+			Event string          `json:"event"`
+			Data  json.RawMessage `json:"data"`
+		}
+		err = json.Unmarshal(data, &msg)
+		if err != nil {
+			log.Printf("error unmarshalling message: %s\n", err.Error())
+			continue
+		}
+
+		handler, ok := l.handlers[msg.Event]
+		if !ok {
+			log.Printf("no handler for event: %s\n", msg.Event)
+			continue
+		}
+
+		go handler(conn, msg.Data)
 	}
 }
