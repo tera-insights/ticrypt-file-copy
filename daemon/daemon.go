@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -28,7 +29,9 @@ func NewDaemon(port string, allowed_hosts []string) *daemon {
 }
 
 func (d *daemon) Start() error {
-	d.listener.Register("copy", func(conn *websocket.Conn, data json.RawMessage) {
+	d.listener.Register("copy", func(ctx context.Context, data json.RawMessage) {
+		conn := ctx.Value("conn").(*websocket.Conn)
+		MsgID := ctx.Value("msg_id").(string)
 		var copyMsg struct {
 			SourceFilepath      string `json:"sourceFilepath"`
 			DestinationFilePath string `json:"destinationFilePath"`
@@ -41,7 +44,11 @@ func (d *daemon) Start() error {
 		progress := make(chan copy.Progress)
 		go func() {
 			for p := range progress {
-				err := conn.WriteJSON(p)
+				err := conn.WriteJSON(message{
+					MsgID: MsgID,
+					Event: "progress",
+					Data:  json.RawMessage(fmt.Sprintf(`{"bytesWritten": %d, "totalBytes": %d}`, p.BytesWritten, p.TotalBytes)),
+				})
 				if err != nil {
 					log.Printf("error writing progress: %s\n", err.Error())
 				}
@@ -61,7 +68,9 @@ func (d *daemon) Start() error {
 		}
 	})
 
-	d.listener.Register("benchmark", func(conn *websocket.Conn, data json.RawMessage) {
+	d.listener.Register("benchmark", func(ctx context.Context, data json.RawMessage) {
+		conn := ctx.Value("conn").(*websocket.Conn)
+		MsgID := ctx.Value("msg_id").(string)
 		var copyMsg struct {
 			SourceFilepath      string `json:"sourceFilepath"`
 			DestinationFilePath string `json:"destinationFilePath"`
@@ -86,7 +95,11 @@ func (d *daemon) Start() error {
 
 		go func() {
 			for stat := range progress {
-				if err := conn.WriteJSON(stat); err != nil {
+				if err := conn.WriteJSON(message{
+					MsgID: MsgID,
+					Event: "progress",
+					Data:  json.RawMessage(fmt.Sprintf(`{"bytesWritten": %d, "totalBytes": %d}`, stat.BytesWritten, stat.TotalBytes)),
+				}); err != nil {
 					log.Printf("error writing progress: %s\n", err.Error())
 				}
 			}
@@ -106,14 +119,16 @@ func (d *daemon) Start() error {
 		}
 	})
 
-	d.listener.Register("ping", func(conn *websocket.Conn, data json.RawMessage) {
+	d.listener.Register("ping", func(ctx context.Context, data json.RawMessage) {
+		conn := ctx.Value("conn").(*websocket.Conn)
 		err := conn.WriteMessage(websocket.TextMessage, data)
 		if err != nil {
 			log.Printf("error writing pong: %s\n", err.Error())
 		}
 	})
 
-	d.listener.Register("stop", func(conn *websocket.Conn, data json.RawMessage) {
+	d.listener.Register("stop", func(ctx context.Context, data json.RawMessage) {
+		conn := ctx.Value("conn").(*websocket.Conn)
 		d.Close()
 		err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		if err != nil {
