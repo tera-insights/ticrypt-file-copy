@@ -14,6 +14,7 @@ import (
 const DEFAULT_CHUNK_SIZE = 4 //In MB
 
 type Progress struct {
+	TransferID   string
 	BytesWritten int
 	TotalBytes   int64
 }
@@ -69,6 +70,7 @@ func NewRecoveryCopier(SourceFilepath string, DestinationFilePath string, chunkS
 
 func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) error {
 	// Log file names
+	fmt.Printf("CopyID: %s\n", c.CopyID)
 	fmt.Printf("Source: %s\n", c.SourceFilepath)
 	fmt.Printf("Destination: %s\n", c.DestinationFilePath)
 
@@ -112,6 +114,7 @@ func (c *Copier) Copy(Read func(c *Copier), Write func(c *Copier) <-chan int) er
 	fmt.Printf("File Size: %v\n", stat.Size())
 
 	progress := Progress{
+		TransferID:   c.CopyID,
 		BytesWritten: 0,
 		TotalBytes:   stat.Size(),
 	}
