@@ -1,26 +1,33 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
 	"github.com/gorilla/websocket"
 )
 
+type message struct {
+	MsgID string          `json:"msg_id"`
+	Event string          `json:"event"`
+	Data  json.RawMessage `json:"data"`
+}
+
 type webSocketListener struct {
 	stop     chan any
-	handlers map[string]func(*websocket.Conn, json.RawMessage)
+	handlers map[string]func(context.Context, json.RawMessage)
 }
 
 func newWebSocketListener() *webSocketListener {
 	listener := &webSocketListener{
 		stop:     make(chan any),
-		handlers: make(map[string]func(*websocket.Conn, json.RawMessage)),
+		handlers: make(map[string]func(context.Context, json.RawMessage)),
 	}
 	return listener
 }
 
-func (l *webSocketListener) Register(updateType string, f func(*websocket.Conn, json.RawMessage)) {
+func (l *webSocketListener) Register(updateType string, f func(context.Context, json.RawMessage)) {
 	l.handlers[updateType] = f
 }
 
@@ -48,12 +55,7 @@ func (l *webSocketListener) Listen(conn *websocket.Conn) error {
 			log.Printf("unexpected message of type %d: %+v\n", msgType, data)
 			continue
 		}
-
-		var msg struct {
-			MsgID string          `json:"msg_id"`
-			Event string          `json:"event"`
-			Data  json.RawMessage `json:"data"`
-		}
+		var msg message
 		err = json.Unmarshal(data, &msg)
 		if err != nil {
 			log.Printf("error unmarshalling message: %s\n", err.Error())
@@ -65,7 +67,9 @@ func (l *webSocketListener) Listen(conn *websocket.Conn) error {
 			log.Printf("no handler for event: %s\n", msg.Event)
 			continue
 		}
-
-		go handler(conn, msg.Data)
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, "msg_id", msg.MsgID)
+		ctx = context.WithValue(ctx, "connection", conn)
+		go handler(ctx, msg.Data)
 	}
 }
