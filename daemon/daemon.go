@@ -30,7 +30,7 @@ func NewDaemon(port string, allowed_hosts []string) *daemon {
 
 func (d *daemon) Start() error {
 	d.listener.Register("copy", func(ctx context.Context, data json.RawMessage) {
-		conn := ctx.Value("conn").(*websocket.Conn)
+		conn := ctx.Value("connection").(*websocket.Conn)
 		MsgID := ctx.Value("msg_id").(string)
 		var copyMsg struct {
 			SourceFilepath      string `json:"sourceFilepath"`
@@ -69,7 +69,7 @@ func (d *daemon) Start() error {
 	})
 
 	d.listener.Register("benchmark", func(ctx context.Context, data json.RawMessage) {
-		conn := ctx.Value("conn").(*websocket.Conn)
+		conn := ctx.Value("connection").(*websocket.Conn)
 		MsgID := ctx.Value("msg_id").(string)
 		var copyMsg struct {
 			SourceFilepath      string `json:"sourceFilepath"`
@@ -120,7 +120,7 @@ func (d *daemon) Start() error {
 	})
 
 	d.listener.Register("ping", func(ctx context.Context, data json.RawMessage) {
-		conn := ctx.Value("conn").(*websocket.Conn)
+		conn := ctx.Value("connection").(*websocket.Conn)
 		err := conn.WriteMessage(websocket.TextMessage, data)
 		if err != nil {
 			log.Printf("error writing pong: %s\n", err.Error())
@@ -128,7 +128,7 @@ func (d *daemon) Start() error {
 	})
 
 	d.listener.Register("stop", func(ctx context.Context, data json.RawMessage) {
-		conn := ctx.Value("conn").(*websocket.Conn)
+		conn := ctx.Value("connection").(*websocket.Conn)
 		d.Close()
 		err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		if err != nil {
