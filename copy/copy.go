@@ -19,11 +19,11 @@ type Progress struct {
 }
 
 type Copier struct {
-	CopyID string
+	CopyID string `json:"copy_id"`
 
-	SourceFilepath      string
-	DestinationFilePath string
-	ChunkSize           int //In MB
+	SourceFilepath      string `json:"sourceFilepath"`
+	DestinationFilePath string `json:"destinationFilePath"`
+	ChunkSize           int    //In MB
 
 	StartingOffset int64
 
