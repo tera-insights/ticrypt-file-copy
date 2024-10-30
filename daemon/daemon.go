@@ -25,6 +25,7 @@ func NewDaemon(port string, allowed_hosts []string) *daemon {
 		port:          port,
 		listener:      newWebSocketListener(),
 		allowed_hosts: allowed_hosts,
+		processes:    make(map[string]*copy.Copier),
 	}
 	return daemon
 }
