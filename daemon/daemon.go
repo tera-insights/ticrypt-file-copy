@@ -17,6 +17,7 @@ type daemon struct {
 	allowed_hosts []string
 	port          string
 	listener      *webSocketListener
+	processes     map[string]*copy.Copier
 }
 
 func NewDaemon(port string, allowed_hosts []string) *daemon {
@@ -24,6 +25,7 @@ func NewDaemon(port string, allowed_hosts []string) *daemon {
 		port:          port,
 		listener:      newWebSocketListener(),
 		allowed_hosts: allowed_hosts,
+		processes:    make(map[string]*copy.Copier),
 	}
 	return daemon
 }
@@ -62,6 +64,9 @@ func (d *daemon) Start() error {
 			return
 		}
 		copier := copy.NewCopier(copyMsg.SourceFilepath, copyMsg.DestinationFilePath, copyMsg.ChunkSize, progress)
+		d.processes[copier.CopyID] = copier
+		defer delete(d.processes, copier.CopyID)
+
 		err := copier.Copy(copy.Read, copy.Write)
 		if err != nil {
 			log.Printf("error copying file: %s\n", err.Error())
@@ -135,6 +140,64 @@ func (d *daemon) Start() error {
 			log.Printf("error writing close message: %s\n", err.Error())
 		}
 	})
+
+	d.listener.Register("list", func(ctx context.Context, data json.RawMessage) {
+		conn := ctx.Value("connection").(*websocket.Conn)
+		var processes []struct {
+			CopyID              string `json:"copy_id"`
+			SourceFilepath      string `json:"sourceFilepath"`
+			DestinationFilePath string `json:"destinationFilePath"`
+		}
+
+		for copyID := range d.processes {
+			processes = append(processes, struct {
+				CopyID              string `json:"copy_id"`
+				SourceFilepath      string `json:"sourceFilepath"`
+				DestinationFilePath string `json:"destinationFilePath"`
+			}{
+				CopyID:              copyID,
+				SourceFilepath:      d.processes[copyID].SourceFilepath,
+				DestinationFilePath: d.processes[copyID].DestinationFilePath,
+			})
+		}
+
+		err := conn.WriteJSON(message{
+			MsgID: ctx.Value("msg_id").(string),
+			Event: "list",
+			Data:  json.RawMessage(fmt.Sprintf(`{"processes": %v}`, processes)),
+		})
+		if err != nil {
+			log.Printf("error writing list: %s\n", err.Error())
+		}
+	})
+
+	d.listener.Register("progress", func(ctx context.Context, data json.RawMessage) {
+		conn := ctx.Value("connection").(*websocket.Conn)
+		copyID := string(data)
+		copier, ok := d.processes[copyID]
+		if !ok {
+			err := conn.WriteMessage(websocket.TextMessage, []byte("copy not found"))
+			if err != nil {
+				log.Printf("error writing copy not found: %s\n", err.Error())
+			}
+			return
+		}
+
+		go func() {
+			for p := range copier.Progress {
+				err := conn.WriteJSON(message{
+					MsgID: ctx.Value("msg_id").(string),
+					Event: "progress",
+					Data:  json.RawMessage(fmt.Sprintf(`{"bytesWritten": %d, "totalBytes": %d}`, p.BytesWritten, p.TotalBytes)),
+				})
+				if err != nil {
+					log.Printf("error writing progress: %s\n", err.Error())
+				}
+			}
+		}()
+	})
+
+	// Ability to cancel a copy
 
 	http.HandleFunc("/ws", d.Serve)
 	addr := flag.String("addr", "localhost:4242", "http service address")
