@@ -39,3 +39,14 @@ install: build
 ## Testing
 test: mocks
 	go test ./...
+
+# Build commands
+DOCKER_ARGS=-v .:/ticrypt-file-copy
+DOCKER_IMAGE=registry.terainsights.net/ticrypt-file-copy:latest
+
+
+all-build-di: build-di
+
+build-di:
+	docker build -t $(DOCKER_IMAGE) -f Dockerfile .
+	docker push $(DOCKER_IMAGE)

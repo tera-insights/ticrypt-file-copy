@@ -34,3 +34,5 @@ destination
 # binary
 ticrypt-file-copy
 bin/
+
+rpmbuild/
