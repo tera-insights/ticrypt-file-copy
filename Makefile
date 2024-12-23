@@ -40,6 +40,11 @@ install: build
 test: mocks
 	go test ./...
 
+
+# Packaging
+package: build
+	./scripts/package.sh
+
 # Build commands
 DOCKER_ARGS=-v .:/ticrypt-file-copy
 DOCKER_IMAGE=registry.terainsights.net/ticrypt-file-copy:latest

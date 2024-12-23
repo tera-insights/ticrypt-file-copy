@@ -2,6 +2,7 @@
 
 Name:       ticp
 Version:    %{version}
+Release:    el
 Summary:    Simple CLI/Library to copy files at high speed
 Vendor:     Tera Insights, LLC
 Packager:   Vishisht Khilariwal <vishy@terainsights.com>
@@ -53,5 +54,5 @@ install -p -m 644 package/ticp.service %{buildroot}%{_unitdir}
 %attr(644, root, root)  %{_unitdir}/ticp.service
 
 %changelog
-* Thursday Dec 19 2024 Vishisht Khilariwal <vishy@terainsights.com> 1.0.0
+* Thu Dec 19 2024 Vishisht Khilariwal <vishy@terainsights.com> 1.0.0
 - First release

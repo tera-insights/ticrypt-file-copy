@@ -1,6 +1,6 @@
 {
     "name": "ticrypt-file-copy",
-    "image": "golang",
+    "image": "registry.terainsights.net/ticrypt-file-copy:latest",
     "customizations": {
         "vscode": {
             "extensions": [

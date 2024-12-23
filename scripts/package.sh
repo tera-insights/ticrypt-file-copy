@@ -5,7 +5,7 @@ version=`scripts/getVersion.sh`
 package="ticp"
 
 spec=package/ticp.spec
-tarFile=rpmbuild/SOURCES/${package}-v${version}.tar
+tarFile=~/rpmbuild/SOURCES/${package}-v${version}.tar
 directory="${package}-${version}/"
 
 echo "Packaging"
